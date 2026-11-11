@@ -21,7 +21,7 @@ The container app exists to hold the webhook URL and bearer token. The share ext
 - The repository started as a one-line README. Kit now owns the agent contract. Issue #1 is the only ticket, and it is assigned to jamesonstone.
 - The webhook already accepts `POST` JSON with `Authorization: Bearer <key>`. The receiver reads `url`, `text`, `image` (base64), `filename`, and `type`. This client also sends `source` (`ios` or `macos`), which the issue requires.
 - The repository is public. The webhook URL, bearer token, Apple Team ID, and production bundle-ID prefix must not be committed.
-- There is no Xcode on the Linux agent VM. Compilation of the app targets is verified by GitHub Actions on a macOS runner, with code signing disabled. PipCore unit tests are the local and CI evidence for the payload, keychain wrapper, and webhook request.
+- GitHub Actions on macOS builds the app targets with signing disabled and runs PipCore tests. Local macOS validation also covers native attachment representations without sending test payloads to the intake webhook.
 
 ## REQUIREMENTS
 
@@ -30,6 +30,7 @@ The container app exists to hold the webhook URL and bearer token. The share ext
 - Settings asks for an https webhook URL and a bearer token and stores them in the Keychain. The extension reads the same item through a shared keychain access group.
 - The POST body can include `url` (the link, or the shared text when there is no link), `text` (the optional note), `image` (base64), `filename`, `type`, and `source`.
 - Images are downscaled and JPEG-compressed so the bytes stay under 750 KB before base64.
+- Image inputs, including file-URL images, are capped at 25 MB before conversion. Other files retain the 750 KB input cap.
 - The share UI is a dark, sparse sheet: what is being sent, an optional note, and Send. Success reads "Delivered! 📬". Failure reads "Pip tripped, try again 🩹".
 - Signing team and bundle-ID prefix live in `Config/Signing.xcconfig`, which is gitignored. `Config/Signing.xcconfig.example` is committed.
 - The Xcode project is generated from `project.yml`. CI builds the iOS Simulator and macOS destinations unsigned and runs `swift test` for PipCore.
@@ -70,19 +71,28 @@ Out of scope: the intake server, the existing Shortcut, App Store submission, an
 - PipCore declares iOS 17 and macOS 14. Without that, `swift test` on the CI Mac tries to compile `URLSession.data(for:)`, `UTType`, and `kSecUseDataProtectionKeychain` against the package default of macOS 10.13.
 - The macOS share controller keeps its `NSHostingController` as a child. A local controller is released when `loadView` returns, and the sheet is blank.
 - Shared files are read only after `startAccessingSecurityScopedResource()`, because the sandboxed Mac extension cannot read a Finder or Files URL otherwise.
+- Safari can supply a URL as UTF-8 `Data`. The URL decoder accepts that representation as well as native URLs and strings.
+- Selected text can arrive in `NSExtensionItem.attributedContentText` without an attachment. It is a fallback when no attachment text is available. Plain-text providers also conform to `public.data`, so the generic binary fallback must exclude them.
+- A legacy macOS image provider can serialize an `NSImage` from `loadDataRepresentation`. Use `loadItem` and convert its native image, data, or security-scoped file URL instead. Do not manually unarchive provider bytes.
+- Native image objects are resized before intermediate PNG conversion, so a compressed photo does not exceed the input cap only because its native bitmap expands into a large TIFF.
+- Image file URLs follow the same JPEG conversion path as image attachments. Their actual file extension determines the image MIME type; a suggested display name does not change classification.
 
 ## VALIDATION
 
-- `swift test --package-path Packages/PipCore` on Linux (Swift 6.2.1): 24 tests passed, 0 failures. That run covers the payload builder, the in-memory Keychain credential store, share extraction, and the webhook client.
-- `ImageIOEncoder` and `SecurityKeychain` tests are compiled only where ImageIO and Security exist. They did not run on Linux. The macOS CI job is the run that executes them, along with the unsigned iOS and macOS builds.
-- The share sheet was not opened. This environment has no Xcode.
+- `swift test --package-path Packages/PipCore` on macOS with Xcode 27.2: 46 tests passed, 0 failures. This covers payloads, Keychain wrappers, URL data, inline text, native image providers, file-URL image compression, and input caps.
+- Both unsigned platform builds passed using the commands in `docs/references/testing.md`, with isolated derived-data directories, placeholder signing values, and `REGISTER_APP=NO`. The only build warning was that App Intents metadata extraction was skipped because the app has no AppIntents dependency.
+- A synthetic integration harness compiled the actual `ExtensionAttachment` adapter and PipCore. Legacy native-image, modern native-image, and image-file providers each produced a 28,771-byte JPEG. A native text provider produced text without a binary attachment. No network requests were sent.
+- Before the fixes, regression tests reproduced the plain-text binary fallback and oversized file-URL image failures. A legacy `NSImage` provider reproduced the earlier image failure with the same 3,154,778-byte serialized representation. The corrected path loads the typed image instead.
+- `kit check --project` passed with two non-blocking notices for preserved project-owned design and security guidance. `git diff --check` passed.
+- Fresh-context review found attachment type, native image resizing, UIKit pixel-scale, and README target-name issues. All findings were fixed; the final review found no further actionable blockers.
+- Historical manual evidence: a signed Mac install, shared Keychain setup, and link delivery succeeded before these final fixes. The user confirmed receipt of that link. Final signed share-sheet text/image delivery, UIKit runtime behavior, iPhone installation, and distribution were not tested in this merge pass.
 
 ## OUTCOME
 
 - PipCore builds the intake JSON, compresses images, stores credentials, and POSTs them.
 - The container app and the share extension are generated from `project.yml` for iOS 17 and macOS 14.
 - The whimsical README has the setup steps. Signing values and the webhook secret stay out of git.
-- Not verified here: a signed install on a Mac or iPhone, or the system share sheet showing Pip.
+- The current source passes local package tests, both unsigned builds, and synthetic adapter integration. Final signed device flows and distribution remain separate validation work.
 
 ## REPOSITORY MEMORY
 

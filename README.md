@@ -58,6 +58,8 @@ Pip POSTs JSON. The header is `Authorization: Bearer <key>`. The body can carry:
 | `type` | The MIME type |
 | `source` | `ios` or `macos` |
 
+Images can be up to 25 MB before conversion. Pip scales them to at most 1600 pixels on the long side and compresses them to a JPEG under 750 KB before base64 encoding. Other files are limited to 750 KB.
+
 ## 🧭 Emoji legend
 
 | Mark | Meaning |
@@ -91,7 +93,7 @@ xcodegen generate
 open Pip.xcodeproj
 ```
 
-In the project navigator, select the **Pip** target, then the **PipShare** target. For each one, open Signing & Capabilities and confirm:
+In the project navigator, select **Pip-macOS** and **PipShare-macOS** for Mac, then **Pip-iOS** and **PipShare-iOS** for iPhone. For each target, open Signing & Capabilities and confirm:
 
 - Automatically manage signing is on.
 - Your team is selected.

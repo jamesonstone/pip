@@ -18,12 +18,21 @@ public protocol ShareProviding {
 
 public struct ShareExtractor: Sendable {
     public var maxFileBytes: Int
+    public var maxImageInputBytes: Int
 
-    public init(maxFileBytes: Int = PayloadLimits.standard.maxFileBytes) {
+    public init(
+        maxFileBytes: Int = PayloadLimits.standard.maxFileBytes,
+        maxImageInputBytes: Int = ShareImageDecoder.maxInputBytes
+    ) {
         self.maxFileBytes = maxFileBytes
+        self.maxImageInputBytes = maxImageInputBytes
     }
 
-    public func extract(from providers: [any ShareProviding], source: ShareSource) async throws -> InboundShare {
+    public func extract(
+        from providers: [any ShareProviding],
+        source: ShareSource,
+        fallbackText: String? = nil
+    ) async throws -> InboundShare {
         var link: URL?
         var sharedText: String?
         var image: ShareBinary?
@@ -39,11 +48,20 @@ public struct ShareExtractor: Sendable {
                 }
             } else if image == nil, provider.contains(ShareType.image) {
                 let data = try await provider.loadData(typeIdentifier: ShareType.image)
+                guard data.count <= maxImageInputBytes else {
+                    throw PayloadError.tooLarge(limit: maxImageInputBytes)
+                }
                 image = ShareBinary(data: data, filename: provider.suggestedName, mimeType: "image/*")
             } else if file == nil, image == nil, isFile {
                 let url = try await provider.loadURL(typeIdentifier: ShareType.fileURL)
-                file = try loadFile(at: url, suggestedName: provider.suggestedName)
-            } else if file == nil, image == nil, link == nil, provider.contains(ShareType.data) {
+                let loaded = try loadFile(at: url, suggestedName: provider.suggestedName)
+                if loaded.mimeType?.hasPrefix("image/") == true {
+                    image = loaded
+                } else {
+                    file = loaded
+                }
+            } else if file == nil, image == nil, link == nil,
+                      !provider.contains(ShareType.text), provider.contains(ShareType.data) {
                 let data = try await provider.loadData(typeIdentifier: ShareType.data)
                 if data.count > maxFileBytes {
                     throw PayloadError.tooLarge(limit: maxFileBytes)
@@ -57,6 +75,13 @@ public struct ShareExtractor: Sendable {
                 if !trimmed.isEmpty {
                     sharedText = trimmed
                 }
+            }
+        }
+
+        if sharedText == nil, let fallbackText {
+            let trimmed = fallbackText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                sharedText = trimmed
             }
         }
 
@@ -76,6 +101,7 @@ public struct ShareExtractor: Sendable {
     }
 
     func loadFile(at url: URL, suggestedName: String?) throws -> ShareBinary {
+        guard url.isFileURL else { throw PayloadError.unreadable }
         #if os(iOS) || os(macOS)
         let didAccess = url.startAccessingSecurityScopedResource()
         defer {
@@ -86,14 +112,16 @@ public struct ShareExtractor: Sendable {
         #endif
         let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
         let size = (attributes[.size] as? NSNumber)?.intValue ?? 0
-        if size > maxFileBytes {
-            throw PayloadError.tooLarge(limit: maxFileBytes)
+        let mimeType = MimeTypes.from(filename: url.lastPathComponent)
+        let limit = mimeType?.hasPrefix("image/") == true ? maxImageInputBytes : maxFileBytes
+        if size > limit {
+            throw PayloadError.tooLarge(limit: limit)
         }
         let data = try Data(contentsOf: url)
-        if data.count > maxFileBytes {
-            throw PayloadError.tooLarge(limit: maxFileBytes)
+        if data.count > limit {
+            throw PayloadError.tooLarge(limit: limit)
         }
         let name = suggestedName ?? url.lastPathComponent
-        return ShareBinary(data: data, filename: name, mimeType: MimeTypes.from(filename: name))
+        return ShareBinary(data: data, filename: name, mimeType: mimeType)
     }
 }

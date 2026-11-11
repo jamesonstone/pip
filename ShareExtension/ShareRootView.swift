@@ -86,11 +86,15 @@ final class ShareSession: ObservableObject {
 
     func load(from context: NSExtensionContext?) async {
         self.context = context
-        let providers = (context?.inputItems as? [NSExtensionItem] ?? [])
+        let items = context?.inputItems as? [NSExtensionItem] ?? []
+        let inlineText = items.compactMap { $0.attributedContentText?.string }.joined(separator: "\n")
+        let providers = items
             .flatMap { $0.attachments ?? [] }
             .map { ExtensionAttachment(provider: $0) }
         do {
-            let loaded = try await extractor.extract(from: providers, source: PipRuntime.source)
+            let loaded = try await extractor.extract(
+                from: providers, source: PipRuntime.source, fallbackText: inlineText
+            )
             share = loaded
             subtitle = preview(for: loaded)
             previewImage = thumbnail(for: loaded.image?.data)

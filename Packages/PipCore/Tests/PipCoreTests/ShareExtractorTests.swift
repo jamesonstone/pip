@@ -2,6 +2,41 @@ import XCTest
 @testable import PipCore
 
 final class ShareExtractorTests: XCTestCase {
+    func testTextConformingToDataDoesNotLoadBinaryRepresentation() async throws {
+        let provider = FakeProvider(items: [
+            ShareType.text: .text("shared text"),
+            ShareType.data: .text("not a binary representation"),
+        ])
+        let share = try await ShareExtractor().extract(from: [provider], source: .macos)
+        XCTAssertEqual(share.sharedText, "shared text")
+        XCTAssertNil(share.file)
+        XCTAssertNil(share.image)
+    }
+
+    func testInlineSelectedTextWithoutAttachments() async throws {
+        let share = try await ShareExtractor().extract(
+            from: [], source: .macos, fallbackText: "  Pip selected text\n"
+        )
+        let payload = try PayloadBuilder(images: UnexpectedImageEncoder()).build(share)
+        XCTAssertEqual(payload.url, "Pip selected text")
+        XCTAssertEqual(share.sharedText, "Pip selected text")
+    }
+
+    func testAttachmentTextTakesPrecedenceOverInlineText() async throws {
+        let provider = FakeProvider(items: [ShareType.text: .text("attachment text")])
+        let share = try await ShareExtractor().extract(
+            from: [provider], source: .macos, fallbackText: "inline text"
+        )
+        XCTAssertEqual(share.sharedText, "attachment text")
+    }
+
+    func testBlankInlineTextDoesNotInventContent() async throws {
+        let share = try await ShareExtractor().extract(
+            from: [], source: .macos, fallbackText: " \n "
+        )
+        XCTAssertNil(share.sharedText)
+    }
+
     func testLinkAndText() async throws {
         let provider = FakeProvider(items: [
             ShareType.url: .url(URL(string: "https://example.com/a")!),

@@ -11,7 +11,11 @@ struct ExtensionAttachment: ShareProviding {
     }
 
     func loadData(typeIdentifier: String) async throws -> Data {
-        try await withCheckedThrowingContinuation { continuation in
+        if typeIdentifier == ShareType.image {
+            // loadDataRepresentation can archive an NSImage instead of returning image bytes.
+            return try ShareImageDecoder.decode(await loadItem(typeIdentifier))
+        }
+        return try await withCheckedThrowingContinuation { continuation in
             provider.loadDataRepresentation(forTypeIdentifier: typeIdentifier) { data, error in
                 if let error {
                     continuation.resume(throwing: error)
@@ -35,19 +39,17 @@ struct ExtensionAttachment: ShareProviding {
 
     func loadURL(typeIdentifier: String) async throws -> URL {
         let item = try await loadItem(typeIdentifier)
-        if let url = item as? URL { return url }
-        if let text = item as? String, let url = URL(string: text) { return url }
-        throw PayloadError.unreadable
+        return try ShareURLDecoder.decode(item)
     }
 
     private func loadItem(_ typeIdentifier: String) async throws -> NSSecureCoding {
-        try await withCheckedThrowingContinuation { continuation in
+        return try await withCheckedThrowingContinuation { continuation in
             provider.loadItem(forTypeIdentifier: typeIdentifier, options: nil) { item, error in
                 if let error {
                     continuation.resume(throwing: error)
                     return
                 }
-                guard let item = item as? NSSecureCoding else {
+                guard let item else {
                     continuation.resume(throwing: PayloadError.unreadable)
                     return
                 }
