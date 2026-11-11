@@ -1,0 +1,7 @@
+// Copy this file to Config/Signing.xcconfig and fill it in.
+// Signing.xcconfig is gitignored. Do not commit your Team ID or a real bundle prefix.
+
+DEVELOPMENT_TEAM =
+CODE_SIGN_STYLE = Automatic
+PRODUCT_BUNDLE_IDENTIFIER_PREFIX = com.example
+KEYCHAIN_GROUP_SUFFIX = $(PRODUCT_BUNDLE_IDENTIFIER_PREFIX).pip.shared
