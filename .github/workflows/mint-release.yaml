@@ -1,0 +1,58 @@
+# Scaffolded by Kit. This workflow is project owned.
+# Publishes tags and GitHub Releases only; it does not build or deploy the application.
+# Enriched Linear/GitHub changelog is retained as an artifact; published release notes stay subject based.
+concurrency:
+    cancel-in-progress: false
+    group: mint-release-${{ github.repository }}
+jobs:
+    publish:
+        if: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.event.deleted == false }}
+        permissions:
+            contents: write
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out the triggering commit
+              uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+              with:
+                fetch-depth: 0
+                ref: ${{ github.sha }}
+            - id: kit_mint_release
+              name: Resolve Mint release metadata
+              uses: jamesonstone/mint@a628b39143f003a88bbad115da17f641a739061c
+              with:
+                command: release-resolve
+                commitish: ${{ github.sha }}
+            - id: kit_mint_changelog
+              if: ${{ steps.kit_mint_release.outputs.needs_git_tag == 'true' && steps.kit_mint_release.outputs.commit_count != '0' }}
+              name: Generate enriched Mint changelog
+              uses: jamesonstone/mint@a628b39143f003a88bbad115da17f641a739061c
+              with:
+                command: changelog
+                current-ref: ${{ steps.kit_mint_release.outputs.target_sha }}
+                current-tag: ${{ steps.kit_mint_release.outputs.version_tag }}
+                output: ${{ runner.temp }}/kit-mint-CHANGELOG.md
+                owner: ${{ github.repository_owner }}
+                prev-tag: ${{ steps.kit_mint_release.outputs.base_tag }}
+                repo: ${{ github.event.repository.name }}
+            - if: ${{ steps.kit_mint_release.outputs.needs_git_tag == 'true' && steps.kit_mint_release.outputs.commit_count != '0' }}
+              name: Retain enriched Mint changelog
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+              with:
+                if-no-files-found: error
+                name: mint-changelog-${{ steps.kit_mint_release.outputs.version_tag }}
+                path: ${{ runner.temp }}/kit-mint-CHANGELOG.md
+            - name: Publish immutable release state
+              uses: jamesonstone/mint@a628b39143f003a88bbad115da17f641a739061c
+              with:
+                command: release-publish
+                commitish: ${{ github.sha }}
+                github-token: ${{ github.token }}
+                owner: ${{ github.repository_owner }}
+                repo: ${{ github.event.repository.name }}
+name: Mint release
+"on":
+    push:
+        branches:
+            - main
+permissions:
+    contents: read

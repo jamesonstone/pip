@@ -1,0 +1,19 @@
+# Kit local generated environment, cache, and scratch artifacts
+.env
+.envrc
+.kit/cache/
+.kit/tmp/
+.kit/temp/
+.kit/*.tmp
+.kit/*.lock
+
+# Local signing. The example stays tracked.
+Config/Signing.xcconfig
+
+# Generated project and build output
+*.xcodeproj
+DerivedData/
+.swiftpm/
+.build/
+xcuserdata/
+*.xcuserstate
