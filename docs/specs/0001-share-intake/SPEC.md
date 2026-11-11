@@ -66,6 +66,10 @@ Out of scope: the intake server, the existing Shortcut, App Store submission, an
 
 - A file URL conforms to `public.url`. The extractor treats `public.file-url` as a file and only treats a non-file URL as a link, so a shared file is not posted as a `file://` string.
 - `kSecUseDataProtectionKeychain` is set on the Security-backed store so macOS uses the data-protection keychain, which is the one keychain access groups apply to.
+- XcodeGen splits one `platform: [iOS, macOS]` target into names the scheme cannot depend on. The project uses separate Pip-iOS, Pip-macOS, PipShare-iOS, and PipShare-macOS targets instead.
+- PipCore declares iOS 17 and macOS 14. Without that, `swift test` on the CI Mac tries to compile `URLSession.data(for:)`, `UTType`, and `kSecUseDataProtectionKeychain` against the package default of macOS 10.13.
+- The macOS share controller keeps its `NSHostingController` as a child. A local controller is released when `loadView` returns, and the sheet is blank.
+- Shared files are read only after `startAccessingSecurityScopedResource()`, because the sandboxed Mac extension cannot read a Finder or Files URL otherwise.
 
 ## VALIDATION
 

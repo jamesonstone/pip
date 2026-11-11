@@ -11,8 +11,8 @@
 | Layer | Command | PR workflow or check | Required | Notes |
 | --- | --- | --- | --- | --- |
 | PipCore unit tests | `swift test --package-path Packages/PipCore` | CI job `Build and test` | yes | Payload, Keychain wrapper, image encoder, webhook request. No webhook credentials. |
-| iOS compile | `xcodebuild -project Pip.xcodeproj -scheme Pip -destination 'generic/platform=iOS Simulator' -configuration Debug CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=- build` | CI job `Build and test` | yes | Needs `xcodegen generate` and a local copy of the example signing file. |
-| macOS compile | `xcodebuild -project Pip.xcodeproj -scheme Pip -destination 'generic/platform=macOS' -configuration Debug CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=- build` | CI job `Build and test` | yes | Same unsigned flags. |
+| iOS compile | `xcodebuild -project Pip.xcodeproj -scheme Pip-iOS -destination 'generic/platform=iOS Simulator' -configuration Debug CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=- build` | CI job `Build and test` | yes | Needs `xcodegen generate` and a local copy of the example signing file. |
+| macOS compile | `xcodebuild -project Pip.xcodeproj -scheme Pip-macOS -destination 'generic/platform=macOS' -configuration Debug CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=- build` | CI job `Build and test` | yes | Same unsigned flags. |
 
 `make test`, `make build-ios`, and `make build-macos` wrap those commands. `make generate` runs `xcodegen generate`.
 

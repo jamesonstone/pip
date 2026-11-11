@@ -76,6 +76,14 @@ public struct ShareExtractor: Sendable {
     }
 
     func loadFile(at url: URL, suggestedName: String?) throws -> ShareBinary {
+        #if os(iOS) || os(macOS)
+        let didAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if didAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+        #endif
         let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
         let size = (attributes[.size] as? NSNumber)?.intValue ?? 0
         if size > maxFileBytes {

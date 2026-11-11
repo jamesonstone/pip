@@ -39,7 +39,7 @@ jobs:
         run: |
           xcodebuild \
             -project Pip.xcodeproj \
-            -scheme Pip \
+            -scheme Pip-iOS \
             -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
@@ -54,7 +54,7 @@ jobs:
         run: |
           xcodebuild \
             -project Pip.xcodeproj \
-            -scheme Pip \
+            -scheme Pip-macOS \
             -destination 'generic/platform=macOS' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \

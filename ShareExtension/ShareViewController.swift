@@ -27,10 +27,21 @@ import AppKit
 
 @objc(ShareViewController)
 final class ShareViewController: NSViewController {
+    private var host: NSHostingController<ShareRootView>?
+
     override func loadView() {
-        let host = NSHostingController(rootView: ShareRootView(context: extensionContext))
-        view = host.view
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 360))
         preferredContentSize = NSSize(width: 380, height: 360)
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        let host = NSHostingController(rootView: ShareRootView(context: extensionContext))
+        self.host = host
+        addChild(host)
+        host.view.frame = view.bounds
+        host.view.autoresizingMask = [.width, .height]
+        view.addSubview(host.view)
     }
 }
 #endif

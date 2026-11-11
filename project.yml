@@ -19,9 +19,9 @@ packages:
   PipCore:
     path: Packages/PipCore
 targets:
-  Pip:
+  Pip-iOS:
     type: application
-    platform: [iOS, macOS]
+    platform: iOS
     sources:
       - path: App
         excludes:
@@ -31,12 +31,13 @@ targets:
     dependencies:
       - package: PipCore
         product: PipCore
-      - target: PipShare
+      - target: PipShare-iOS
         embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(PRODUCT_BUNDLE_IDENTIFIER_PREFIX).pip
         PRODUCT_NAME: Pip
+        PRODUCT_MODULE_NAME: Pip
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: 1
         GENERATE_INFOPLIST_FILE: YES
@@ -48,19 +49,43 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_STYLE: Automatic
         ENABLE_PREVIEWS: YES
-      platforms:
-        iOS:
-          base:
-            TARGETED_DEVICE_FAMILY: "1,2"
-            SUPPORTS_MACCATALYST: NO
-            CODE_SIGN_ENTITLEMENTS: App/Entitlements/Pip-iOS.entitlements
-        macOS:
-          base:
-            CODE_SIGN_ENTITLEMENTS: App/Entitlements/Pip-macOS.entitlements
-            ENABLE_APP_SANDBOX: YES
-  PipShare:
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+        CODE_SIGN_ENTITLEMENTS: App/Entitlements/Pip-iOS.entitlements
+  Pip-macOS:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+        excludes:
+          - Info.plist
+          - Entitlements/**
+      - path: Shared
+    dependencies:
+      - package: PipCore
+        product: PipCore
+      - target: PipShare-macOS
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(PRODUCT_BUNDLE_IDENTIFIER_PREFIX).pip
+        PRODUCT_NAME: Pip
+        PRODUCT_MODULE_NAME: Pip
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: App/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Pip
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_PREVIEWS: YES
+        ENABLE_APP_SANDBOX: YES
+        CODE_SIGN_ENTITLEMENTS: App/Entitlements/Pip-macOS.entitlements
+  PipShare-iOS:
     type: app-extension
-    platform: [iOS, macOS]
+    platform: iOS
     sources:
       - path: ShareExtension
         excludes:
@@ -74,6 +99,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(PRODUCT_BUNDLE_IDENTIFIER_PREFIX).pip.share
         PRODUCT_NAME: PipShare
+        PRODUCT_MODULE_NAME: PipShare
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: 1
         GENERATE_INFOPLIST_FILE: YES
@@ -83,20 +109,54 @@ targets:
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
         CODE_SIGN_STYLE: Automatic
-      platforms:
-        iOS:
-          base:
-            CODE_SIGN_ENTITLEMENTS: ShareExtension/Entitlements/PipShare-iOS.entitlements
-        macOS:
-          base:
-            CODE_SIGN_ENTITLEMENTS: ShareExtension/Entitlements/PipShare-macOS.entitlements
+        CODE_SIGN_ENTITLEMENTS: ShareExtension/Entitlements/PipShare-iOS.entitlements
+  PipShare-macOS:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: ShareExtension
+        excludes:
+          - Info.plist
+          - Entitlements/**
+      - path: Shared
+    dependencies:
+      - package: PipCore
+        product: PipCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(PRODUCT_BUNDLE_IDENTIFIER_PREFIX).pip.share
+        PRODUCT_NAME: PipShare
+        PRODUCT_MODULE_NAME: PipShare
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: ShareExtension/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Pip
+        INFOPLIST_KEY_CFBundleName: Pip
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: ShareExtension/Entitlements/PipShare-macOS.entitlements
 schemes:
-  Pip:
+  Pip-iOS:
     build:
       targets:
-        Pip: all
-        PipShare: all
+        Pip-iOS: all
+        PipShare-iOS: all
     run:
       config: Debug
+      target: Pip-iOS
     archive:
       config: Release
+      target: Pip-iOS
+  Pip-macOS:
+    build:
+      targets:
+        Pip-macOS: all
+        PipShare-macOS: all
+    run:
+      config: Debug
+      target: Pip-macOS
+    archive:
+      config: Release
+      target: Pip-macOS

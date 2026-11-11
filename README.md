@@ -103,7 +103,7 @@ The entitlements already request Keychain Sharing for `$(TeamID).<prefix>.pip.sh
 
 ### 2. First run
 
-1. Choose the Pip scheme. Run it on My Mac, then on your iPhone.
+1. Choose the **Pip-macOS** scheme and run it on My Mac. Choose the **Pip-iOS** scheme and run it on your iPhone.
 2. In the app, paste the intake webhook URL. It has to be `https`.
 3. Paste the bearer key.
 4. Tap **Save**. The line you want is "Tucked in the Keychain 🔐".
