@@ -1,0 +1,102 @@
+name: Pip
+options:
+  deploymentTarget:
+    iOS: "17.0"
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+  developmentLanguage: en
+configs:
+  Debug: debug
+  Release: release
+configFiles:
+  Debug: Config/Signing.xcconfig
+  Release: Config/Signing.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+packages:
+  PipCore:
+    path: Packages/PipCore
+targets:
+  Pip:
+    type: application
+    platform: [iOS, macOS]
+    sources:
+      - path: App
+        excludes:
+          - Info.plist
+          - Entitlements/**
+      - path: Shared
+    dependencies:
+      - package: PipCore
+        product: PipCore
+      - target: PipShare
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(PRODUCT_BUNDLE_IDENTIFIER_PREFIX).pip
+        PRODUCT_NAME: Pip
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: App/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Pip
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_PREVIEWS: YES
+      platforms:
+        iOS:
+          base:
+            TARGETED_DEVICE_FAMILY: "1,2"
+            SUPPORTS_MACCATALYST: NO
+            CODE_SIGN_ENTITLEMENTS: App/Entitlements/Pip-iOS.entitlements
+        macOS:
+          base:
+            CODE_SIGN_ENTITLEMENTS: App/Entitlements/Pip-macOS.entitlements
+            ENABLE_APP_SANDBOX: YES
+  PipShare:
+    type: app-extension
+    platform: [iOS, macOS]
+    sources:
+      - path: ShareExtension
+        excludes:
+          - Info.plist
+          - Entitlements/**
+      - path: Shared
+    dependencies:
+      - package: PipCore
+        product: PipCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(PRODUCT_BUNDLE_IDENTIFIER_PREFIX).pip.share
+        PRODUCT_NAME: PipShare
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: ShareExtension/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Pip
+        INFOPLIST_KEY_CFBundleName: Pip
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+        CODE_SIGN_STYLE: Automatic
+      platforms:
+        iOS:
+          base:
+            CODE_SIGN_ENTITLEMENTS: ShareExtension/Entitlements/PipShare-iOS.entitlements
+        macOS:
+          base:
+            CODE_SIGN_ENTITLEMENTS: ShareExtension/Entitlements/PipShare-macOS.entitlements
+schemes:
+  Pip:
+    build:
+      targets:
+        Pip: all
+        PipShare: all
+    run:
+      config: Debug
+    archive:
+      config: Release
