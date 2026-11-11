@@ -18,11 +18,9 @@ final class ImageIOEncoderTests: XCTestCase {
         XCTAssertEqual(encoded.filename, "Vacation Photo.jpg")
 
         let source = try XCTUnwrap(CGImageSourceCreateWithData(jpeg as CFData, nil))
-        let properties = CGImageSourceGetPropertiesAtIndex(source, 0, nil) as? [AnyHashable: Any]
-        let pixelWidth = (properties?[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue ?? 0
-        let pixelHeight = (properties?[kCGImagePropertyPixelHeight] as? NSNumber)?.intValue ?? 0
-        XCTAssertLessThanOrEqual(max(pixelWidth, pixelHeight), 1600)
-        XCTAssertGreaterThan(pixelWidth, 0)
+        let image = try XCTUnwrap(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        XCTAssertLessThanOrEqual(max(image.width, image.height), 1600)
+        XCTAssertGreaterThan(image.width, 0)
     }
 
     func testGarbageIsUnreadable() {
