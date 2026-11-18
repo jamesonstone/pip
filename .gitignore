@@ -17,3 +17,6 @@ DerivedData/
 .build/
 xcuserdata/
 *.xcuserstate
+
+# Kit local environment, cache, scratch artifacts, and SOPs
+/docs/sops/local/

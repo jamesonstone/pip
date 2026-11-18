@@ -15,13 +15,11 @@ registry:
         - kind: project-guidance
           slug: DESIGN.md
           path: DESIGN.md
-          installed_hash: sha256:7744800713dd0616135a46bd2333ccd77cd7820031743103748ed219ec33e6eb
-          state: managed
+          state: local-custom
         - kind: project-guidance
           slug: SECURITY.md
           path: SECURITY.md
-          installed_hash: sha256:418e6602983021cedc2434d76bad915f34b23f668ec467ff24e4a4f92e97b7a7
-          state: managed
+          state: local-custom
         - kind: ruleset
           slug: agent-team-orchestration
           path: docs/references/rules/agent-team-orchestration.md
@@ -40,7 +38,7 @@ registry:
         - kind: ruleset
           slug: backend-service-architecture
           path: docs/references/rules/backend-service-architecture.md
-          installed_hash: sha256:40b79a158bf9b83f21445555dc07cdf58641817bbe034ede4c72530346b212f3
+          installed_hash: sha256:930680753a24a14f699c8de86f92ac8f8580bd32f0239ec4dfc0050a034d6a1c
           state: managed
         - kind: ruleset
           slug: ci-outage
@@ -70,7 +68,7 @@ registry:
         - kind: ruleset
           slug: delivery
           path: docs/references/rules/delivery.md
-          installed_hash: sha256:a876549b62fdeff1d4105a0ac9af8a82bcab3e46a51218beeedaa26824e1125d
+          installed_hash: sha256:0c578454c896ebcf84bea6dc17662c1a20ffd86f8f44dc2449437d4b237d5f70
           state: managed
         - kind: ruleset
           slug: deployment-recovery
@@ -115,7 +113,7 @@ registry:
         - kind: ruleset
           slug: standard-operating-procedures
           path: docs/references/rules/standard-operating-procedures.md
-          installed_hash: sha256:aeea046604b7f762222c707de6489d8149b689a57f3c05db8b4fe4919d77d231
+          installed_hash: sha256:873dd91e427e2b29d9026f6e68961ab83a32b0edc5e409f0e531a8f78956af9f
           state: managed
         - kind: ruleset
           slug: testing-and-environment-validation
@@ -125,5 +123,8 @@ registry:
         - kind: ruleset
           slug: work-cleanup
           path: docs/references/rules/work-cleanup.md
-          installed_hash: sha256:252630fffee7034c8ce3d224d25e9284f21e9add4276e70396120d15872e3560
+          installed_hash: sha256:851175416a1002676e3dccab2db1c6091e2a4928fc4c02fb2e51b53955c3fc6c
           state: managed
+github:
+    default_assignees:
+        - jamesonstone

@@ -22,7 +22,7 @@ PPPPPPPPPP          IIIIIIIIII   PPPPPPPPPP
 Hand it a link, a scrap of text, a photo, or a file. Add a note if you feel like it. Pip tucks the parcel into your personal intake webhook and gets out of the way.
 
 <!-- BEGIN KIT-MANAGED README BADGES -->
-[![Last commit](https://img.shields.io/github/last-commit/jamesonstone/pip)](https://github.com/jamesonstone/pip/commits) [![Open issues](https://img.shields.io/github/issues/jamesonstone/pip)](https://github.com/jamesonstone/pip/issues) [![Pull requests](https://img.shields.io/github/issues-pr/jamesonstone/pip)](https://github.com/jamesonstone/pip/pulls) [![Release](https://img.shields.io/github/v/release/jamesonstone/pip)](https://github.com/jamesonstone/pip/releases)
+[![Last commit](https://img.shields.io/github/last-commit/jamesonstone/pip)](https://github.com/jamesonstone/pip/commits) [![Open issues](https://img.shields.io/github/issues/jamesonstone/pip)](https://github.com/jamesonstone/pip/issues) [![Pull requests](https://img.shields.io/github/issues-pr/jamesonstone/pip)](https://github.com/jamesonstone/pip/pulls) [![CI](https://github.com/jamesonstone/pip/actions/workflows/ci.yml/badge.svg)](https://github.com/jamesonstone/pip/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/jamesonstone/pip)](https://github.com/jamesonstone/pip/releases)
 <!-- END KIT-MANAGED README BADGES -->
 
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-111111?style=flat-square&logo=apple&logoColor=white)](https://developer.apple.com/macos/)

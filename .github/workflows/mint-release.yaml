@@ -18,14 +18,14 @@ jobs:
                 ref: ${{ github.sha }}
             - id: kit_mint_release
               name: Resolve Mint release metadata
-              uses: jamesonstone/mint@a628b39143f003a88bbad115da17f641a739061c
+              uses: jamesonstone/mint@2c3c3daa5e09425090781fde2d1ff64dceb6f9f6
               with:
                 command: release-resolve
                 commitish: ${{ github.sha }}
             - id: kit_mint_changelog
               if: ${{ steps.kit_mint_release.outputs.needs_git_tag == 'true' && steps.kit_mint_release.outputs.commit_count != '0' }}
               name: Generate enriched Mint changelog
-              uses: jamesonstone/mint@a628b39143f003a88bbad115da17f641a739061c
+              uses: jamesonstone/mint@2c3c3daa5e09425090781fde2d1ff64dceb6f9f6
               with:
                 command: changelog
                 current-ref: ${{ steps.kit_mint_release.outputs.target_sha }}
@@ -42,7 +42,7 @@ jobs:
                 name: mint-changelog-${{ steps.kit_mint_release.outputs.version_tag }}
                 path: ${{ runner.temp }}/kit-mint-CHANGELOG.md
             - name: Publish immutable release state
-              uses: jamesonstone/mint@a628b39143f003a88bbad115da17f641a739061c
+              uses: jamesonstone/mint@2c3c3daa5e09425090781fde2d1ff64dceb6f9f6
               with:
                 command: release-publish
                 commitish: ${{ github.sha }}
