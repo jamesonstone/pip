@@ -73,6 +73,16 @@ final class DestinationBookTests: XCTestCase {
         XCTAssertNil(try store.load())
     }
 
+    func testSaveReplacesMalformedRecord() throws {
+        let keychain = InMemoryKeychain()
+        try keychain.set(Data("not-json".utf8), account: CredentialStore.account)
+        let store = CredentialStore(keychain: keychain)
+        let bot = destination(name: "Work", host: "intake.example.test", token: "test-token")
+        try store.save(DestinationBook(destinations: [bot], lastUsedID: bot.id))
+        XCTAssertEqual(try store.load()?.bearerToken, "test-token")
+        XCTAssertEqual(try store.loadBook().destinations.map(\.name), ["Work"])
+    }
+
     func testBrokenJSONAndUnknownVersionThrow() throws {
         let broken = InMemoryKeychain()
         try broken.set(Data("not-json".utf8), account: CredentialStore.account)
@@ -106,6 +116,11 @@ final class DestinationBookTests: XCTestCase {
         XCTAssertEqual(unmatched.destination?.id, work.id)
         XCTAssertEqual(unmatched.note, "@Workshop keep")
         XCTAssertFalse(unmatched.usedPrefix)
+
+        let pinned = book.choice(for: "@Home later", selectedID: work.id, usePrefix: false)
+        XCTAssertEqual(pinned.destination?.id, work.id)
+        XCTAssertEqual(pinned.note, "@Home later")
+        XCTAssertFalse(pinned.usedPrefix)
 
         let exact = NoteRouter.route(note: "@Work Bot", destinations: book.destinations)
         XCTAssertEqual(exact.destinationID, workBot.id)

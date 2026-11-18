@@ -219,6 +219,8 @@ struct ShareRootView: View {
 
     private func focusNote(_ compose: Bool) {
         guard compose, focusTrigger.ready else { return }
-        noteFocused = true
+        Task { @MainActor in
+            noteFocused = true
+        }
     }
 }

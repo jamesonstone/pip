@@ -58,7 +58,13 @@ final class SettingsModel: ObservableObject {
         switch CredentialRules.make(webhookURL: webhookURL, bearerToken: token) {
         case let .success(credentials):
             do {
-                var book = try store.loadBook()
+                let bookOnDisk: DestinationBook
+                do {
+                    bookOnDisk = try store.loadBook()
+                } catch CredentialError.malformedRecord {
+                    bookOnDisk = DestinationBook(destinations: [], lastUsedID: nil)
+                }
+                var book = bookOnDisk
                 let id = editingID ?? UUID()
                 let destination = IntakeDestination(
                     id: id,

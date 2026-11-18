@@ -18,6 +18,8 @@ final class ShareSession: ObservableObject {
     @Published var selectedID: UUID?
 
     private var share: InboundShare?
+    private var pinnedNote: String?
+    private var didClose = false
     private var context: NSExtensionContext?
     private var sendTask: Task<Void, Never>?
     private let store = PipRuntime.store()
@@ -26,7 +28,8 @@ final class ShareSession: ObservableObject {
     private let client = WebhookClient()
 
     var choice: DestinationChoice {
-        book.choice(for: note, selectedID: selectedID)
+        let usePrefix = pinnedNote != note
+        return book.choice(for: note, selectedID: selectedID, usePrefix: usePrefix)
     }
 
     var canSend: Bool {
@@ -68,16 +71,17 @@ final class ShareSession: ObservableObject {
     }
 
     func select(_ id: UUID) {
-        let current = book.choice(for: note, selectedID: selectedID)
+        let current = book.choice(for: note, selectedID: selectedID, usePrefix: pinnedNote != note)
         if current.usedPrefix, current.destination?.id != id {
             note = current.note
         }
         selectedID = id
+        pinnedNote = note
     }
 
     func send() {
         guard !isSending, canCompose, let share else { return }
-        let current = book.choice(for: note, selectedID: selectedID)
+        let current = choice
         guard let destination = current.destination else {
             status = StatusCopy.needsWebhook
             return
@@ -94,6 +98,8 @@ final class ShareSession: ObservableObject {
     }
 
     func close() {
+        guard !didClose else { return }
+        didClose = true
         sendTask?.cancel()
         context?.cancelRequest(withError: NSError(domain: NSCocoaErrorDomain, code: NSUserCancelledError))
     }

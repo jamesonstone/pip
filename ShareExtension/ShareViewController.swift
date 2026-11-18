@@ -27,6 +27,7 @@ import AppKit
 
 final class FocusableHostingView<Content: View>: NSHostingView<Content> {
     override var acceptsFirstResponder: Bool { true }
+    override var needsPanelToBecomeKey: Bool { true }
 }
 
 @objc(ShareViewController)

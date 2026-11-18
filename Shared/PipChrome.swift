@@ -50,10 +50,11 @@ enum BotMarks {
     ]
 
     static func appearance(for name: String) -> BotAppearance {
-        let hash = name.unicodeScalars.reduce(0) { partial, scalar in
-            (partial &* 33) &+ Int(scalar.value)
+        var hash: UInt = 0
+        for scalar in name.unicodeScalars {
+            hash = hash &* 33 &+ UInt(scalar.value)
         }
-        let index = abs(hash) % symbols.count
+        let index = Int(hash % UInt(symbols.count))
         return BotAppearance(symbol: symbols[index], color: colors[index])
     }
 }

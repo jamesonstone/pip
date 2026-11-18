@@ -40,10 +40,12 @@ public struct DestinationBook: Equatable, Sendable {
         destinations.first { $0.id == id }
     }
 
-    public func choice(for note: String, selectedID: UUID?) -> DestinationChoice {
-        let routed = NoteRouter.route(note: note, destinations: destinations)
-        if let id = routed.destinationID, let match = destination(id: id) {
-            return DestinationChoice(destination: match, note: routed.note, usedPrefix: true)
+    public func choice(for note: String, selectedID: UUID?, usePrefix: Bool = true) -> DestinationChoice {
+        if usePrefix {
+            let routed = NoteRouter.route(note: note, destinations: destinations)
+            if let id = routed.destinationID, let match = destination(id: id) {
+                return DestinationChoice(destination: match, note: routed.note, usedPrefix: true)
+            }
         }
         let selected = selectedID.flatMap { destination(id: $0) } ?? preferred
         return DestinationChoice(destination: selected, note: note, usedPrefix: false)
@@ -108,7 +110,8 @@ public enum NoteRouter {
     private static func remainder(afterMatching name: String, in text: Substring) -> Substring? {
         guard text.count >= name.count else { return nil }
         let prefix = String(text.prefix(name.count))
-        guard prefix.compare(name, options: [.caseInsensitive]) == .orderedSame else { return nil }
+        let locale = Locale(identifier: "en_US_POSIX")
+        guard prefix.compare(name, options: [.caseInsensitive], locale: locale) == .orderedSame else { return nil }
         let rest = text.dropFirst(name.count)
         if let next = rest.first, !next.isWhitespace { return nil }
         return rest
