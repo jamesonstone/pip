@@ -13,6 +13,8 @@ public struct IntakeCredentials: Equatable, Sendable {
 public enum CredentialError: Error, Equatable, Sendable {
     case invalidWebhookURL
     case emptyToken
+    case invalidName
+    case duplicateName
     case malformedRecord
 }
 
@@ -81,31 +83,145 @@ public struct CredentialStore: Sendable {
             webhookURL: credentials.webhookURL.absoluteString,
             bearerToken: credentials.bearerToken
         ).get()
-        let record = StoredCredentials(webhookURL: checked.webhookURL, bearerToken: checked.bearerToken)
-        let data = try JSONEncoder().encode(record)
-        try keychain.set(data, account: Self.account)
+        var book = try loadBook()
+        if book.destinations.isEmpty {
+            let id = UUID()
+            book.destinations = [
+                IntakeDestination(
+                    id: id,
+                    name: DestinationBook.legacyName,
+                    webhookURL: checked.webhookURL,
+                    bearerToken: checked.bearerToken
+                ),
+            ]
+            book.lastUsedID = id
+        } else if let preferred = book.preferred,
+                  let index = book.destinations.firstIndex(where: { $0.id == preferred.id }) {
+            book.destinations[index].webhookURL = checked.webhookURL
+            book.destinations[index].bearerToken = checked.bearerToken
+        }
+        try save(book)
     }
 
     public func load() throws -> IntakeCredentials? {
-        guard let data = try keychain.data(account: Self.account) else { return nil }
-        let stored: StoredCredentials
+        try loadBook().preferred?.credentials
+    }
+
+    public func loadBook() throws -> DestinationBook {
+        guard let data = try keychain.data(account: Self.account) else {
+            return DestinationBook(destinations: [], lastUsedID: nil)
+        }
+        if let record = try? JSONDecoder().decode(BookRecord.self, from: data) {
+            guard record.version == 2 else { throw CredentialError.malformedRecord }
+            return try book(from: record)
+        }
+        let legacy: LegacyRecord
         do {
-            stored = try JSONDecoder().decode(StoredCredentials.self, from: data)
+            legacy = try JSONDecoder().decode(LegacyRecord.self, from: data)
         } catch {
             throw CredentialError.malformedRecord
         }
-        return try CredentialRules.make(
-            webhookURL: stored.webhookURL.absoluteString,
-            bearerToken: stored.bearerToken
+        let credentials = try CredentialRules.make(
+            webhookURL: legacy.webhookURL.absoluteString,
+            bearerToken: legacy.bearerToken
         ).get()
+        let id = LegacyDestinationIdentity.id(for: credentials.webhookURL)
+        return DestinationBook(
+            destinations: [
+                IntakeDestination(
+                    id: id,
+                    name: DestinationBook.legacyName,
+                    webhookURL: credentials.webhookURL,
+                    bearerToken: credentials.bearerToken
+                ),
+            ],
+            lastUsedID: id
+        )
+    }
+
+    public func save(_ book: DestinationBook) throws {
+        let stored = try record(from: book)
+        let data = try JSONEncoder().encode(stored)
+        try keychain.set(data, account: Self.account)
+    }
+
+    public func rememberLastUsed(_ id: UUID) throws {
+        guard let data = try keychain.data(account: Self.account) else { return }
+        let storedVersion = (try? JSONDecoder().decode(BookRecord.self, from: data))?.version
+        var book = try loadBook()
+        guard book.destinations.contains(where: { $0.id == id }) else { return }
+        if storedVersion == 2, book.lastUsedID == id { return }
+        book.lastUsedID = id
+        try save(book)
     }
 
     public func clear() throws {
         try keychain.remove(account: Self.account)
     }
+
+    private func record(from book: DestinationBook) throws -> BookRecord {
+        var destinations: [DestinationRecord] = []
+        var names: Set<String> = []
+        var ids: Set<UUID> = []
+        for destination in book.destinations {
+            let name = try DestinationRules.normalizedName(destination.name).get()
+            let credentials = try CredentialRules.make(
+                webhookURL: destination.webhookURL.absoluteString,
+                bearerToken: destination.bearerToken
+            ).get()
+            let folded = name.folding(options: .caseInsensitive, locale: Locale(identifier: "en_US_POSIX"))
+            guard names.insert(folded).inserted else { throw CredentialError.duplicateName }
+            guard ids.insert(destination.id).inserted else { throw CredentialError.malformedRecord }
+            destinations.append(DestinationRecord(
+                id: destination.id,
+                name: name,
+                webhookURL: credentials.webhookURL,
+                bearerToken: credentials.bearerToken
+            ))
+        }
+        let lastUsedID = book.lastUsedID.flatMap { ids.contains($0) ? $0 : nil }
+        return BookRecord(version: 2, destinations: destinations, lastUsedID: lastUsedID)
+    }
+
+    private func book(from record: BookRecord) throws -> DestinationBook {
+        var destinations: [IntakeDestination] = []
+        var names: Set<String> = []
+        var ids: Set<UUID> = []
+        for stored in record.destinations {
+            let name = try DestinationRules.normalizedName(stored.name).get()
+            let credentials = try CredentialRules.make(
+                webhookURL: stored.webhookURL.absoluteString,
+                bearerToken: stored.bearerToken
+            ).get()
+            let folded = name.folding(options: .caseInsensitive, locale: Locale(identifier: "en_US_POSIX"))
+            guard names.insert(folded).inserted else { throw CredentialError.malformedRecord }
+            guard ids.insert(stored.id).inserted else { throw CredentialError.malformedRecord }
+            destinations.append(IntakeDestination(
+                id: stored.id,
+                name: name,
+                webhookURL: credentials.webhookURL,
+                bearerToken: credentials.bearerToken
+            ))
+        }
+        let lastUsedID = record.lastUsedID.flatMap { ids.contains($0) ? $0 : nil }
+        return DestinationBook(destinations: destinations, lastUsedID: lastUsedID)
+    }
 }
 
-private struct StoredCredentials: Codable {
+private struct BookRecord: Codable {
+    var version: Int
+    var destinations: [DestinationRecord]
+    var lastUsedID: UUID?
+}
+
+private struct DestinationRecord: Codable {
+    var id: UUID
+    var name: String
+    var webhookURL: URL
+    var bearerToken: String
+}
+
+private struct LegacyRecord: Codable {
     var webhookURL: URL
     var bearerToken: String
 }
