@@ -33,22 +33,30 @@ struct ShareRootView: View {
         _focusTrigger = ObservedObject(wrappedValue: focusTrigger ?? ShareFocusTrigger(ready: true))
     }
 
+    @ViewBuilder
     var body: some View {
+        #if os(macOS)
+        chrome.onExitCommand { session.close() }
+        #else
+        chrome
+        #endif
+    }
+
+    private var chrome: some View {
         measured
             .background(PipPalette.background.ignoresSafeArea())
             .preferredColorScheme(.dark)
-            .onExitCommand { session.close() }
-        .onPreferenceChange(ShareHeightKey.self) { height in
-            guard height > 1 else { return }
-            onContentHeight(height)
-        }
-        .task { await session.load(from: context) }
-        .onChange(of: session.canCompose) { _, compose in
-            focusNote(compose)
-        }
-        .onChange(of: focusTrigger.ready) { _, _ in
-            focusNote(session.canCompose)
-        }
+            .onPreferenceChange(ShareHeightKey.self) { height in
+                guard height > 1 else { return }
+                onContentHeight(height)
+            }
+            .task { await session.load(from: context) }
+            .onChange(of: session.canCompose) { _, compose in
+                focusNote(compose)
+            }
+            .onChange(of: focusTrigger.ready) { _, _ in
+                focusNote(session.canCompose)
+            }
     }
 
     @ViewBuilder
@@ -187,7 +195,8 @@ struct ShareRootView: View {
                 .textFieldStyle(.plain)
                 .lineLimit(3, reservesSpace: true)
                 .focused($noteFocused)
-                .onKeyPress(.return) { press in
+                .onKeyPress { press in
+                    guard press.key == .return else { return .ignored }
                     if press.modifiers.contains(.shift) { return .ignored }
                     session.send()
                     return .handled
