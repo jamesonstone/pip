@@ -7,7 +7,8 @@ struct PipApp: App {
             SettingsScreen()
         }
         #if os(macOS)
-        .defaultSize(width: 460, height: 560)
+        .defaultSize(width: 420, height: 560)
+        .windowResizability(.contentSize)
         #endif
     }
 }
