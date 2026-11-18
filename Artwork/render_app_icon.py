@@ -3,7 +3,7 @@
 
 Requires cairosvg and Pillow. Run from anywhere:
 
-    python3 App/Icon/render_app_icon.py
+    python3 Artwork/render_app_icon.py
 
 octopus.svg is the artwork for 32 px and up. OPTICAL_16 is the pixel grid for
 the 16 px share-menu slot, where the vector collapses. The script writes every
@@ -19,7 +19,7 @@ from pathlib import Path
 import cairosvg
 from PIL import Image, ImageDraw
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 SVG_PATH = Path(__file__).with_name("octopus.svg")
 ICONSET = ROOT / "App" / "Assets.xcassets" / "AppIcon.appiconset"
 PREVIEW_PATH = ROOT / "docs" / "octopus-icon-preview.png"
@@ -142,8 +142,8 @@ def to_dark(image: Image.Image) -> Image.Image:
 
 
 def to_tinted(image: Image.Image) -> Image.Image:
-    """Opaque grayscale. iOS colorizes this slot; alpha is not allowed at 1024."""
-    return image.convert("L").convert("RGB")
+    """Grayscale, no alpha. iOS colorizes this slot."""
+    return image.convert("L")
 
 
 def render_slot(entry: dict, cache: dict[int, Image.Image]) -> None:
@@ -160,8 +160,9 @@ def render_slot(entry: dict, cache: dict[int, Image.Image]) -> None:
         raise SystemExit(f"unsupported appearance: {kind}")
     if image.size != (size, size):
         raise SystemExit(f"rendered {image.size} for a {size} slot")
-    if image.mode != "RGB":
-        raise SystemExit(f"{entry['filename']} is {image.mode}, expected RGB")
+    expected = "L" if kind == "tinted" else "RGB"
+    if image.mode != expected:
+        raise SystemExit(f"{entry['filename']} is {image.mode}, expected {expected}")
     image.save(ICONSET / entry["filename"], format="PNG", optimize=True)
 
 
