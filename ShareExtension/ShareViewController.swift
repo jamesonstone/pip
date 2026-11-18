@@ -25,23 +25,50 @@ final class ShareViewController: UIViewController {
 #else
 import AppKit
 
+final class FocusableHostingView<Content: View>: NSHostingView<Content> {
+    override var acceptsFirstResponder: Bool { true }
+    override var needsPanelToBecomeKey: Bool { true }
+}
+
 @objc(ShareViewController)
 final class ShareViewController: NSViewController {
-    private var host: NSHostingController<ShareRootView>?
+    private var hostView: FocusableHostingView<ShareRootView>?
+    private let focusTrigger = ShareFocusTrigger()
+    private var appliedHeight: CGFloat = 0
 
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 360))
-        preferredContentSize = NSSize(width: 380, height: 360)
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 300))
+        preferredContentSize = NSSize(width: 400, height: 300)
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        let host = NSHostingController(rootView: ShareRootView(context: extensionContext))
-        self.host = host
-        addChild(host)
-        host.view.frame = view.bounds
-        host.view.autoresizingMask = [.width, .height]
-        view.addSubview(host.view)
+        let hostView = FocusableHostingView(rootView: ShareRootView(
+            context: extensionContext,
+            onContentHeight: { [weak self] height in
+                DispatchQueue.main.async {
+                    self?.applyContentHeight(height)
+                }
+            },
+            focusTrigger: focusTrigger
+        ))
+        self.hostView = hostView
+        hostView.frame = view.bounds
+        hostView.autoresizingMask = [.width, .height]
+        view.addSubview(hostView)
+    }
+
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        view.window?.makeFirstResponder(hostView)
+        focusTrigger.ready = true
+    }
+
+    private func applyContentHeight(_ height: CGFloat) {
+        let next = min(max(ceil(height), 220), 560)
+        guard abs(next - appliedHeight) > 1 else { return }
+        appliedHeight = next
+        preferredContentSize = NSSize(width: 400, height: next)
     }
 }
 #endif

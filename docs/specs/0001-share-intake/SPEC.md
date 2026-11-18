@@ -27,11 +27,11 @@ The container app exists to hold the webhook URL and bearer token. The share ext
 
 - A SwiftUI container app for iOS (iPhone required, iPad included) and macOS, plus a share extension embedded in each.
 - The extension is named Pip in the share sheet and accepts a URL, text, one image, or one file.
-- Settings asks for an https webhook URL and a bearer token and stores them in the Keychain. The extension reads the same item through a shared keychain access group.
+- Settings stores named destinations in the Keychain. Each destination is a name, an https webhook URL, and a bearer token. The extension reads the same item through a shared keychain access group. `docs/specs/0002-named-destinations/SPEC.md` is the source for that book, including migration of the original single URL and key.
 - The POST body can include `url` (the link, or the shared text when there is no link), `text` (the optional note), `image` (base64), `filename`, `type`, and `source`.
 - Images are downscaled and JPEG-compressed so the bytes stay under 750 KB before base64.
 - Image inputs, including file-URL images, are capped at 25 MB before conversion. Other files retain the 750 KB input cap.
-- The share UI is a dark, sparse sheet: what is being sent, an optional note, and Send. Success reads "Delivered! 📬". Failure reads "Pip tripped, try again 🩹".
+- The share UI is a dark sheet: what is being sent, the chosen bot, an optional note, and Send. Success reads "Delivered! 📬". Failure reads "Pip tripped, try again 🩹". An empty destination list reads "Add a bot in Pip first 🔑".
 - Signing team and bundle-ID prefix live in `Config/Signing.xcconfig`, which is gitignored. `Config/Signing.xcconfig.example` is committed.
 - The Xcode project is generated from `project.yml`. CI builds the iOS Simulator and macOS destinations unsigned and runs `swift test` for PipCore.
 - The README explains signing, first run, and how to enable Pip and move it to the top of the share sheet on Mac and iPhone.
@@ -76,6 +76,7 @@ Out of scope: the intake server, the existing Shortcut, App Store submission, an
 - A legacy macOS image provider can serialize an `NSImage` from `loadDataRepresentation`. Use `loadItem` and convert its native image, data, or security-scoped file URL instead. Do not manually unarchive provider bytes.
 - Native image objects are resized before intermediate PNG conversion, so a compressed photo does not exceed the input cap only because its native bitmap expands into a large TIFF.
 - Image file URLs follow the same JPEG conversion path as image attachments. Their actual file extension determines the image MIME type; a suggested display name does not change classification.
+- Named destinations, `@Name` routing, and the macOS window layout are specified in `docs/specs/0002-named-destinations/SPEC.md`. The payload fields in this spec are unchanged.
 
 ## VALIDATION
 

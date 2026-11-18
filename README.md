@@ -22,7 +22,7 @@ PPPPPPPPPP          IIIIIIIIII   PPPPPPPPPP
 Hand it a link, a scrap of text, a photo, or a file. Add a note if you feel like it. Pip tucks the parcel into your personal intake webhook and gets out of the way.
 
 <!-- BEGIN KIT-MANAGED README BADGES -->
-[![Last commit](https://img.shields.io/github/last-commit/jamesonstone/pip)](https://github.com/jamesonstone/pip/commits) [![Open issues](https://img.shields.io/github/issues/jamesonstone/pip)](https://github.com/jamesonstone/pip/issues) [![Pull requests](https://img.shields.io/github/issues-pr/jamesonstone/pip)](https://github.com/jamesonstone/pip/pulls) [![Release](https://img.shields.io/github/v/release/jamesonstone/pip)](https://github.com/jamesonstone/pip/releases)
+[![Last commit](https://img.shields.io/github/last-commit/jamesonstone/pip)](https://github.com/jamesonstone/pip/commits) [![Open issues](https://img.shields.io/github/issues/jamesonstone/pip)](https://github.com/jamesonstone/pip/issues) [![Pull requests](https://img.shields.io/github/issues-pr/jamesonstone/pip)](https://github.com/jamesonstone/pip/pulls) [![CI](https://github.com/jamesonstone/pip/actions/workflows/ci.yml/badge.svg)](https://github.com/jamesonstone/pip/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/jamesonstone/pip)](https://github.com/jamesonstone/pip/releases)
 <!-- END KIT-MANAGED README BADGES -->
 
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-111111?style=flat-square&logo=apple&logoColor=white)](https://developer.apple.com/macos/)
@@ -35,7 +35,7 @@ Hand it a link, a scrap of text, a photo, or a file. Add a note if you feel like
 
 A native SwiftUI app for Mac and iPhone, plus a share extension named **Pip**. It shows up in the system share sheet. You move it to the top yourself. Pip cannot do that part. Apple keeps the seat map.
 
-The webhook URL and the key stay in the Keychain. They are not in this repo, and they should never be.
+Each bot's name, webhook URL, and key stay in the Keychain. They are not in this repo, and they should never be.
 
 ## 🗺️ How a share travels
 
@@ -66,7 +66,7 @@ Images can be up to 25 MB before conversion. Pip scales them to at most 1600 pix
 | --- | --- |
 | 📬 | Delivered |
 | 🩹 | The send failed. Try again |
-| 🔑 | The webhook is not saved yet |
+| 🔑 | Add a bot in Pip first |
 | 📦 | The attachment is over the size cap |
 | 🔐 | The URL and key are in the Keychain |
 
@@ -106,11 +106,11 @@ The entitlements already request Keychain Sharing for `$(TeamID).<prefix>.pip.sh
 ### 2. First run
 
 1. Choose the **Pip-macOS** scheme and run it on My Mac. Choose the **Pip-iOS** scheme and run it on your iPhone.
-2. In the app, paste the intake webhook URL. It has to be `https`.
-3. Paste the bearer key.
-4. Tap **Save**. The line you want is "Tucked in the Keychain 🔐".
+2. In the app, name the bot, paste its intake webhook URL, and paste the bearer key. The URL has to be `https`.
+3. Tap **Save**. The line you want is "Tucked in the Keychain 🔐".
+4. Add another bot the same way when you have more than one Grok Bot webhook.
 
-The share extension reads that same Keychain item. You do not enter the key again inside the sheet.
+The share extension reads that same Keychain item. You do not enter the key again inside the sheet. Hover the info icon beside a field if you want a reminder of what it does.
 
 ### 3. Mac share sheet
 
@@ -118,7 +118,7 @@ The share extension reads that same Keychain item. You do not enter the key agai
 2. In the share sheet, choose **Edit Extensions…** (it sits at the bottom of the menu). You can also use System Settings → Privacy & Security → Extensions → Sharing.
 3. Turn **Pip** on.
 4. Drag Pip to the top of the list so it sits in the top row.
-5. Close the editor. Share a link. You should see a short note field and **Send**.
+5. Close the editor. Share a link. You should see the bot, a short note field, and **Send**. Pip uses the last bot you sent to. Start the note with `@Name` to pick a different one. Pip does not send that prefix.
 
 ### 4. iPhone share sheet
 
@@ -128,7 +128,7 @@ The share extension reads that same Keychain item. You do not enter the key agai
 4. Find **Pip**, turn it on, and drag it to the top of the favorites so it shows in the first row.
 5. Tap Done. Share a photo or a link to confirm the sheet opens.
 
-Success says **Delivered! 📬**. A problem says **Pip tripped, try again 🩹**. If the key was never saved, Pip says to set the webhook first.
+Success says **Delivered! 📬**. A problem says **Pip tripped, try again 🩹**. If no bot is saved, Pip says to add a bot in Pip first.
 
 ## 🧪 Tests
 

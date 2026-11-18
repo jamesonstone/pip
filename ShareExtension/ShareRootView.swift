@@ -1,185 +1,235 @@
 import PipCore
 import SwiftUI
-#if os(iOS)
-import UIKit
-#else
-import AppKit
-#endif
 
-struct ShareRootView: View {
-    let context: NSExtensionContext?
-    @StateObject private var session = ShareSession()
+final class ShareFocusTrigger: ObservableObject {
+    @Published var ready: Bool
 
-    var body: some View {
-        ZStack {
-            PipPalette.background.ignoresSafeArea()
-            VStack(alignment: .leading, spacing: 18) {
-                HStack {
-                    PipWordmark(subtitle: session.subtitle)
-                    Spacer()
-                    Button("Close", action: session.close)
-                        .font(.callout)
-                        .foregroundStyle(PipPalette.muted)
-                        .frame(minWidth: 44, minHeight: 44)
-                        .accessibilityLabel("Close")
-                }
-                if let preview = session.previewImage {
-                    preview
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 56, height: 56)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .accessibilityHidden(true)
-                }
-                if session.canCompose {
-                    TextField("Add a note", text: $session.note, axis: .vertical)
-                        .textFieldStyle(.plain)
-                        .lineLimit(3, reservesSpace: true)
-                        .padding(12)
-                        .background(PipPalette.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .accessibilityLabel("Note")
-                    Button(action: session.send) {
-                        if session.isSending {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Text("Send")
-                        }
-                    }
-                    .buttonStyle(PipButtonStyle())
-                    .disabled(session.isSending)
-                }
-                if let status = session.status {
-                    Text(status)
-                        .font(.callout)
-                        .foregroundStyle(PipPalette.muted)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityLabel(status)
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(22)
-            .frame(maxWidth: 480)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        }
-        .preferredColorScheme(.dark)
-        .task { await session.load(from: context) }
+    init(ready: Bool = false) {
+        self.ready = ready
     }
 }
 
-@MainActor
-final class ShareSession: ObservableObject {
-    @Published var note = ""
-    @Published var subtitle = StatusCopy.gathering
-    @Published var status: String?
-    @Published var previewImage: Image?
-    @Published var canCompose = false
-    @Published var isSending = false
+private struct ShareHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
 
-    private var share: InboundShare?
-    private var context: NSExtensionContext?
-    private var sendTask: Task<Void, Never>?
-    private let store = PipRuntime.store()
-    private let extractor = ShareExtractor()
-    private let builder = PayloadBuilder(images: ImageIOEncoder())
-    private let client = WebhookClient()
+struct ShareRootView: View {
+    let context: NSExtensionContext?
+    var onContentHeight: (CGFloat) -> Void
+    @ObservedObject var focusTrigger: ShareFocusTrigger
+    @StateObject private var session = ShareSession()
+    @FocusState private var noteFocused: Bool
 
-    func load(from context: NSExtensionContext?) async {
+    init(
+        context: NSExtensionContext?,
+        onContentHeight: @escaping (CGFloat) -> Void = { _ in },
+        focusTrigger: ShareFocusTrigger? = nil
+    ) {
         self.context = context
-        let items = context?.inputItems as? [NSExtensionItem] ?? []
-        let inlineText = items.compactMap { $0.attributedContentText?.string }.joined(separator: "\n")
-        let providers = items
-            .flatMap { $0.attachments ?? [] }
-            .map { ExtensionAttachment(provider: $0) }
-        do {
-            let loaded = try await extractor.extract(
-                from: providers, source: PipRuntime.source, fallbackText: inlineText
-            )
-            share = loaded
-            subtitle = preview(for: loaded)
-            previewImage = thumbnail(for: loaded.image?.data)
-            canCompose = true
-            status = nil
-        } catch {
-            canCompose = false
-            status = describe(error)
-            subtitle = "Pip"
-        }
+        self.onContentHeight = onContentHeight
+        _focusTrigger = ObservedObject(wrappedValue: focusTrigger ?? ShareFocusTrigger(ready: true))
     }
 
-    func send() {
-        guard !isSending, let share else { return }
-        isSending = true
-        status = StatusCopy.sending
-        sendTask?.cancel()
-        sendTask = Task { [note] in
-            await deliver(share, note: note)
-        }
-    }
-
-    func close() {
-        sendTask?.cancel()
-        context?.cancelRequest(withError: NSError(domain: NSCocoaErrorDomain, code: NSUserCancelledError))
-    }
-
-    private func deliver(_ share: InboundShare, note: String) async {
-        defer { isSending = false }
-        do {
-            guard let credentials = try store.load() else {
-                status = StatusCopy.needsWebhook
-                return
-            }
-            var parcel = share
-            parcel.note = note
-            let payload = try builder.build(parcel)
-            try await client.send(payload, using: credentials)
-            guard !Task.isCancelled else { return }
-            canCompose = false
-            status = StatusCopy.delivered
-            subtitle = "Sent"
-            try? await Task.sleep(nanoseconds: 900_000_000)
-            guard !Task.isCancelled else { return }
-            context?.completeRequest(returningItems: [], completionHandler: nil)
-        } catch {
-            guard !Task.isCancelled else { return }
-            status = describe(error)
-        }
-    }
-
-    private func preview(for share: InboundShare) -> String {
-        if let host = share.link?.host, !host.isEmpty { return host }
-        if share.sharedText != nil { return "Text" }
-        if let name = share.image?.filename ?? share.file?.filename, !name.isEmpty { return name }
-        if share.image != nil { return "Image" }
-        if share.file != nil { return "File" }
-        return "Ready"
-    }
-
-    private func thumbnail(for data: Data?) -> Image? {
-        guard let data else { return nil }
-        #if os(iOS)
-        guard let image = UIImage(data: data) else { return nil }
-        return Image(uiImage: image)
+    @ViewBuilder
+    var body: some View {
+        #if os(macOS)
+        chrome.onExitCommand { session.close() }
         #else
-        guard let image = NSImage(data: data) else { return nil }
-        return Image(nsImage: image)
+        chrome
         #endif
     }
 
-    private func describe(_ error: Error) -> String {
-        switch error {
-        case PayloadError.empty:
-            return StatusCopy.empty
-        case PayloadError.tooLarge:
-            return StatusCopy.tooHeavy
-        case WebhookError.rejected(let status):
-            return "\(StatusCopy.tripped)\nThe webhook answered \(status)."
-        case KeychainError.missingEntitlement:
-            return "Turn on Keychain Sharing for this team, then try again."
-        case CredentialError.malformedRecord, CredentialError.invalidWebhookURL, CredentialError.emptyToken:
-            return StatusCopy.needsWebhook
-        default:
-            return StatusCopy.tripped
+    private var chrome: some View {
+        measured
+            .background(PipPalette.background.ignoresSafeArea())
+            .preferredColorScheme(.dark)
+            .onPreferenceChange(ShareHeightKey.self) { height in
+                guard height > 1 else { return }
+                onContentHeight(height)
+            }
+            .task { await session.load(from: context) }
+            .onChange(of: session.canCompose) { _, compose in
+                focusNote(compose)
+            }
+            .onChange(of: focusTrigger.ready) { _, _ in
+                focusNote(session.canCompose)
+            }
+    }
+
+    @ViewBuilder
+    private var measured: some View {
+        #if os(macOS)
+        sheet.frame(width: 400).fixedSize(horizontal: true, vertical: true)
+        #else
+        sheet.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        #endif
+    }
+
+    private var sheet: some View {
+        VStack(spacing: 0) {
+            PipHairline(playful: true)
+            fields
+        }
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(key: ShareHeightKey.self, value: proxy.size.height)
+            }
+        }
+    }
+
+    private var fields: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            header
+            if let preview = session.previewImage {
+                preview
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .accessibilityHidden(true)
+            }
+            if session.canCompose {
+                botPicker
+                noteField
+                sendButton
+            }
+            if let status = session.status {
+                Text(status)
+                    .font(.callout)
+                    .foregroundStyle(PipPalette.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(status)
+            }
+            #if !os(macOS)
+            Spacer(minLength: 0)
+            #endif
+        }
+        .padding(20)
+        .frame(maxWidth: 400, alignment: .leading)
+    }
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "sparkles")
+                .font(.title3)
+                .foregroundStyle(PipPalette.coral)
+                .frame(width: 44, height: 44)
+                .background(
+                    LinearGradient(colors: [PipPalette.iris, PipPalette.accent.opacity(0.85)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                )
+                .accessibilityHidden(true)
+            PipWordmark(subtitle: session.subtitle)
+            Spacer(minLength: 0)
+            Button("Close", action: session.close)
+                .font(.callout)
+                .foregroundStyle(PipPalette.muted)
+                .frame(minWidth: 44, minHeight: 44)
+                .keyboardShortcut(.cancelAction)
+                .accessibilityLabel("Close")
+        }
+    }
+
+    private var botPicker: some View {
+        let choice = session.choice
+        let name = choice.destination?.name ?? "No bot yet"
+        let appearance = BotMarks.appearance(for: choice.destination?.name ?? "")
+        return VStack(alignment: .leading, spacing: 6) {
+            if session.book.destinations.isEmpty {
+                Label(name, systemImage: "questionmark.circle")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(PipPalette.muted)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .background(PipPalette.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .accessibilityLabel("No bot yet")
+            } else {
+                Menu {
+                    ForEach(session.book.destinations) { destination in
+                        Button {
+                            session.select(destination.id)
+                        } label: {
+                            if destination.id == choice.destination?.id {
+                                Label(destination.name, systemImage: "checkmark")
+                            } else {
+                                Text(destination.name)
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: appearance.symbol)
+                            .foregroundStyle(appearance.color)
+                        Text(name)
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(PipPalette.ink)
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PipPalette.muted)
+                    }
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 44)
+                    .background(PipPalette.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .accessibilityLabel("Bot, \(name)")
+            }
+            if choice.usedPrefix, let picked = choice.destination?.name {
+                Text("Note picks \(picked)")
+                    .font(.footnote)
+                    .foregroundStyle(PipPalette.accent)
+            }
+        }
+    }
+
+    private var noteField: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "note.text")
+                .foregroundStyle(PipPalette.accent)
+                .padding(.top, 2)
+                .accessibilityHidden(true)
+            TextField("Add a note", text: $session.note, axis: .vertical)
+                .textFieldStyle(.plain)
+                .lineLimit(3, reservesSpace: true)
+                .focused($noteFocused)
+                .onKeyPress { press in
+                    guard press.key == .return else { return .ignored }
+                    if press.modifiers.contains(.shift) { return .ignored }
+                    session.send()
+                    return .handled
+                }
+                .accessibilityLabel("Note")
+        }
+        .padding(12)
+        .background(PipPalette.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var sendButton: some View {
+        Button(action: session.send) {
+            if session.isSending {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(.white)
+            } else {
+                HStack(spacing: 8) {
+                    Image(systemName: "paperplane.fill")
+                    Text("Send")
+                }
+            }
+        }
+        .buttonStyle(PipButtonStyle(fill: PipPalette.iris, label: .white))
+        .disabled(!session.canSend)
+        .keyboardShortcut(.defaultAction)
+        .accessibilityLabel("Send")
+    }
+
+    private func focusNote(_ compose: Bool) {
+        guard compose, focusTrigger.ready else { return }
+        Task { @MainActor in
+            noteFocused = true
         }
     }
 }
