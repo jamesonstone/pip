@@ -30,6 +30,4 @@ Report rendered-validation limitations honestly. Never claim visual validation w
 
 ## Project guidance
 
-Pip's screens stay dark, sparse, and quiet. The share sheet shows what is being sent, one optional note, and Send. Settings shows the webhook URL, the key, and Save.
-
-Playful copy is limited to status lines: success, failure, and "saved". Buttons keep plain labels. Emoji do not replace those words, and they are not the only cue for the result. Text stays at least body size, controls are at least 44 points tall, and the sheet does not depend on color alone.
+Pip's screens stay dark. Settings is a compact window, about 420 points wide, that sizes to its fields. It lists named bots and edits one name, one https webhook URL, and one key. Each field has an icon and an info control. The info control's hover text says what the field is for, how Pip uses it, and that the value stays in the shared Keychain. The share sheet shows what is being sent, the bot that will receive it, one optional note, and Send. Send is colored, includes an icon, and still says Send. Playful color belongs on the share sheet. Playful copy stays in the status lines. Buttons keep plain labels. Emoji do not replace those words, and they are not the only cue for the result. Text stays at least body size, controls are at least 44 points tall, and the sheet does not depend on color alone.

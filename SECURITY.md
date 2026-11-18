@@ -36,7 +36,7 @@ Report suspected exploitable vulnerabilities privately. Coordinate remediation a
 
 This repository is public.
 
-- The intake webhook URL and bearer token live only in the shared Keychain item. Do not hardcode them, log them, put them in Info.plist, or commit them.
+- Each bot's name, intake webhook URL, and bearer token live only in the shared Keychain item. Do not hardcode them, log them, put them in Info.plist, or commit them. Removing a bot deletes that entry. Do not keep a copy.
 - The Apple Team ID and the bundle-ID prefix live only in the untracked `Config/Signing.xcconfig`. The committed example uses an empty team and `com.example`.
 - The client accepts an `https` webhook with no userinfo. It does not follow a redirect onto a different host while the bearer token is attached.
 - Image and file bytes are capped before they are encoded. Test fixtures use `example.test` hosts and stand-in tokens, never a real key.
