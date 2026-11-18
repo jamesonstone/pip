@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img">
+  <title>Pip octopus app icon</title>
+  <desc>Original octopus mark on a deep indigo tile with a purple-to-blue glow. Not an Apple emoji glyph.</desc>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3A2E86"/>
+      <stop offset="0.46" stop-color="#241B58"/>
+      <stop offset="1" stop-color="#14102C"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.34" cy="0.30" r="0.74">
+      <stop offset="0" stop-color="#8B78FF" stop-opacity="0.95"/>
+      <stop offset="0.32" stop-color="#5445C7" stop-opacity="0.58"/>
+      <stop offset="0.70" stop-color="#61C7FA" stop-opacity="0.36"/>
+      <stop offset="1" stop-color="#61C7FA" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="mantle" cx="0.36" cy="0.32" r="0.80">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.55" stop-color="#F4F7FF"/>
+      <stop offset="1" stop-color="#D4DEF6"/>
+    </radialGradient>
+    <linearGradient id="limb" x1="0" y1="0" x2="0.15" y2="1">
+      <stop offset="0" stop-color="#F7F8FF"/>
+      <stop offset="1" stop-color="#C5D4F6"/>
+    </linearGradient>
+    <clipPath id="mantle-clip">
+      <ellipse cx="512" cy="448" rx="214" ry="196"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#tile)"/>
+  <ellipse cx="512" cy="500" rx="400" ry="370" fill="url(#glow)"/>
+
+  <!-- Four legs, spread so the gaps survive down to 64 px. Raised arms make the other two limbs. -->
+  <g id="legs" fill="none" stroke="url(#limb)" stroke-linecap="round">
+    <path d="M408 635 C 290 760, 230 860, 320 945" stroke-width="100"/>
+    <path d="M472 655 C 420 800, 390 880, 455 965" stroke-width="100"/>
+    <path d="M552 655 C 604 800, 634 880, 569 965" stroke-width="100"/>
+    <path d="M616 635 C 734 760, 794 860, 704 945" stroke-width="100"/>
+  </g>
+
+  <ellipse cx="512" cy="448" rx="214" ry="196" fill="url(#mantle)"/>
+  <ellipse cx="440" cy="372" rx="120" ry="74" fill="#FFFFFF" opacity="0.45" clip-path="url(#mantle-clip)"/>
+
+  <!-- Raised arms are in front of the mantle, with a gap so they read as limbs rather than ears. -->
+  <g id="arms" fill="none" stroke="url(#limb)" stroke-linecap="round">
+    <path d="M440 630 C 300 590, 168 470, 220 320" stroke-width="100"/>
+    <path d="M584 630 C 724 590, 856 470, 804 320" stroke-width="100"/>
+  </g>
+
+  <g id="eyes">
+    <circle cx="424" cy="456" r="62" fill="#1A1438"/>
+    <circle cx="600" cy="456" r="62" fill="#1A1438"/>
+    <g id="catchlight">
+      <circle cx="402" cy="434" r="18" fill="#FFFFFF"/>
+      <circle cx="578" cy="434" r="18" fill="#FFFFFF"/>
+    </g>
+  </g>
+</svg>
