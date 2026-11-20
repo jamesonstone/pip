@@ -22,6 +22,10 @@ struct ShareRootView: View {
     @ObservedObject var focusTrigger: ShareFocusTrigger
     @StateObject private var session = ShareSession()
     @FocusState private var noteFocused: Bool
+    #if os(macOS)
+    @State private var botMenuHover = false
+    @FocusState private var botMenuFocused: Bool
+    #endif
 
     init(
         context: NSExtensionContext?,
@@ -147,40 +151,103 @@ struct ShareRootView: View {
                     .background(PipPalette.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .accessibilityLabel("No bot yet")
             } else {
-                Menu {
-                    ForEach(session.book.destinations) { destination in
-                        Button {
-                            session.select(destination.id)
-                        } label: {
-                            if destination.id == choice.destination?.id {
-                                Label(destination.name, systemImage: "checkmark")
-                            } else {
-                                Text(destination.name)
-                            }
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: appearance.symbol)
-                            .foregroundStyle(appearance.color)
-                        Text(name)
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(PipPalette.ink)
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(PipPalette.muted)
-                    }
-                    .padding(.horizontal, 12)
-                    .frame(minHeight: 44)
-                    .background(PipPalette.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                }
-                .accessibilityLabel("Bot, \(name)")
+                botMenu(name: name, appearance: appearance, choice: choice)
             }
             if choice.usedPrefix, let picked = choice.destination?.name {
                 Text("Note picks \(picked)")
                     .font(.footnote)
                     .foregroundStyle(PipPalette.accent)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func botMenu(name: String, appearance: BotAppearance, choice: DestinationChoice) -> some View {
+        #if os(macOS)
+        // default macOS Menu draws a bordered popup and a second chevron around its label.
+        // this row is the card. the menu button draws only its label, so hover is the card stroke.
+        botMenuLabel(name: name, appearance: appearance)
+            .accessibilityHidden(true)
+            .background(PipPalette.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.white.opacity(botMenuHover || botMenuFocused ? 0.55 : 0), lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+            .overlay {
+                GeometryReader { proxy in
+                    Menu {
+                        botMenuItems(choice: choice)
+                    } label: {
+                        Color.clear
+                            .frame(width: proxy.size.width, height: proxy.size.height)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(ShareBotMenuButtonStyle())
+                    .menuIndicator(.hidden)
+                    .menuStyle(.button)
+                    .focusEffectDisabled()
+                    .focused($botMenuFocused)
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .clipped()
+                    .accessibilityLabel("Bot, \(name)")
+                }
+            }
+            .onHover { botMenuHover = $0 }
+        #else
+        Menu {
+            botMenuItems(choice: choice)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: appearance.symbol)
+                    .foregroundStyle(appearance.color)
+                Text(name)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(PipPalette.ink)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PipPalette.muted)
+            }
+            .padding(.horizontal, 12)
+            .frame(minHeight: 44)
+            .background(PipPalette.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .accessibilityLabel("Bot, \(name)")
+        #endif
+    }
+
+    #if os(macOS)
+    private func botMenuLabel(name: String, appearance: BotAppearance) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: appearance.symbol)
+                .foregroundStyle(appearance.color)
+            Text(name)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(PipPalette.ink)
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PipPalette.muted)
+        }
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+    #endif
+
+    @ViewBuilder
+    private func botMenuItems(choice: DestinationChoice) -> some View {
+        ForEach(session.book.destinations) { destination in
+            Button {
+                session.select(destination.id)
+            } label: {
+                if destination.id == choice.destination?.id {
+                    Label(destination.name, systemImage: "checkmark")
+                } else {
+                    Text(destination.name)
+                }
             }
         }
     }
@@ -233,3 +300,11 @@ struct ShareRootView: View {
         }
     }
 }
+
+#if os(macOS)
+private struct ShareBotMenuButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+    }
+}
+#endif

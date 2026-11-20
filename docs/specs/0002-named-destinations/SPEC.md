@@ -59,6 +59,7 @@ Out of scope: the intake server, App Store submission, reordering the system sha
 - `kit init` on this repo exits with an error because `.kit.yaml` is already present. `kit reconcile` is the write path that brings the project to Kit v3.0.59. An explicit `github.default_assignees` list of `jamesonstone` is what the auto-assign workflow renders. An empty list would not fall back to a global config.
 - The empty region under Send is the share view's bottom spacer inside a fixed 360-point `preferredContentSize`. Removing the spacer on macOS and publishing the measured height removes that gap.
 - A SwiftUI field inside the macOS share extension does not take keyboard focus until the hosting view accepts first responder.
+- On macOS, `Menu` draws a bordered popup button and its own menu-indicator chevron. A label that also draws a card and a chevron shows up as a popup nested in a second control, and the highlight rect matches neither one. The visible card is a full-width row, the same width as the note field and Send. The menu uses `menuStyle(.button)`, `menuIndicator(.hidden)`, and a button style that draws only the label, so it adds no bezel and no hover platter. Its label is a clear rect sized to that card. The system focus ring is disabled. Hover and keyboard focus draw one stroke on the card's rounded rect. The iOS menu label is unchanged. `menuStyle(.borderlessButton)` stays unused because it is macOS-only and does not keep the card full width.
 
 ## VALIDATION
 
